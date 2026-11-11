@@ -17,7 +17,8 @@ module tb_alu_standalone;
     alu dut (.a(a), .b(b), .alu_ctrl(alu_ctrl), .result(result), .zero(zero));
 
     initial begin
-        $dumpfile("sim/waveforms/alu.vcd");
+        // Use plusarg or default to alu.vcd in current working dir
+        $dumpfile("alu.vcd");
         $dumpvars(0, tb_alu_standalone);
     end
 

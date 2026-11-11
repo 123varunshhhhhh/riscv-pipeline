@@ -31,10 +31,10 @@ RTL_SRCS = rtl/alu.v \
 # ---- cocotb ALU test -------------------------------------------
 test_alu: TOPLEVEL = alu
 test_alu: MODULE   = verif.test_alu
-test_alu: $(RTL_SRCS)
+test_alu: rtl/alu.v
 	$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(SIM) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
-		VERILOG_SOURCES="$(RTL_SRCS)" \
+		VERILOG_SOURCES="rtl/alu.v" \
 		TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) \
 		WAVES=$(WAVES)
 
@@ -42,6 +42,7 @@ test_alu: $(RTL_SRCS)
 test_pipeline: TOPLEVEL = top
 test_pipeline: MODULE   = verif.test_pipeline
 test_pipeline: $(RTL_SRCS)
+	mkdir -p sim_build/asm && cp -r asm/* sim_build/asm/ 2>/dev/null || true
 	$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(SIM) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		VERILOG_SOURCES="$(RTL_SRCS)" \
@@ -52,6 +53,7 @@ test_pipeline: $(RTL_SRCS)
 test_hazards: TOPLEVEL = top
 test_hazards: MODULE   = verif.test_hazards
 test_hazards: $(RTL_SRCS)
+	mkdir -p sim_build/asm && cp -r asm/* sim_build/asm/ 2>/dev/null || true
 	$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(SIM) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		VERILOG_SOURCES="$(RTL_SRCS)" \
@@ -62,6 +64,7 @@ test_hazards: $(RTL_SRCS)
 test_random: TOPLEVEL = top
 test_random: MODULE   = verif.test_random
 test_random: $(RTL_SRCS)
+	mkdir -p sim_build/asm && cp -r asm/* sim_build/asm/ 2>/dev/null || true
 	$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(SIM) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		VERILOG_SOURCES="$(RTL_SRCS)" \
@@ -72,7 +75,15 @@ test_random: $(RTL_SRCS)
 sim_alu: rtl/alu.v
 	mkdir -p sim/waveforms
 	iverilog -g2012 -o sim/alu_tb_out rtl/alu.v verif/tb_alu_standalone.v
-	cd sim && vvp alu_tb_out
+	vvp sim/alu_tb_out
+	@echo "Waveform: alu.vcd — open with: gtkwave alu.vcd"
+
+# ---- Icarus standalone Pipeline simulation ---------------------
+sim_pipeline: $(RTL_SRCS)
+	mkdir -p sim/waveforms
+	iverilog -g2012 -o sim/tb_top_out $(RTL_SRCS) verif/tb_top.v
+	vvp sim/tb_top_out
+	@echo "Waveform: tb_top.vcd — open with: gtkwave tb_top.vcd"
 	@echo "Waveform: sim/waveforms/alu.vcd — open with: gtkwave sim/waveforms/alu.vcd"
 
 # ---- All tests -------------------------------------------------

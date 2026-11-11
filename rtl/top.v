@@ -2,16 +2,6 @@
 // TOP — 5-Stage Pipelined RISC-V (RV32I) Processor
 // Connects: IF → ID → EX → MEM → WB with hazard handling
 // ============================================================
-`include "rtl/alu.v"
-`include "rtl/reg_file.v"
-`include "rtl/if_stage.v"
-`include "rtl/id_stage.v"
-`include "rtl/ex_stage.v"
-`include "rtl/mem_stage.v"
-`include "rtl/wb_stage.v"
-`include "rtl/pipeline_regs.v"
-`include "rtl/hazard_unit.v"
-`include "rtl/branch_predictor.v"
 
 module top (
     input wire clk,

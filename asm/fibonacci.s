@@ -8,7 +8,7 @@
 _start:
     addi x1, x0, 0      # fib[0] = 0
     addi x2, x0, 1      # fib[1] = 1
-    addi x3, x0, 10     # loop 10 times
+    addi x3, x0, 9      # loop 9 times → after 9 iters x2=fib(10)=55
 
 loop:
     add  x4, x1, x2     # x4 = fib[n-2] + fib[n-1]

@@ -4,6 +4,10 @@ Generates valid RV32I instruction streams, runs co-simulation,
 and compares RTL vs Python golden model. Reports bugs automatically.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles

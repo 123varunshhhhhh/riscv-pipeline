@@ -213,17 +213,21 @@ class TestBranch:
 # ================================================================
 class TestEndToEnd:
     def test_fibonacci_10(self):
-        """fib(10) = 55 — the classic pipeline stress test"""
+        """fib(10) = 55 — the classic pipeline stress test
+        Start: x1=fib(0)=0, x2=fib(1)=1
+        After 9 iterations: x2=fib(10)=55
+        Counter=9 (NOT 10) because we start at fib(0),fib(1) already.
+        """
         prog = [
-            addi(1, 0, 0),   # x1 = 0
-            addi(2, 0, 1),   # x2 = 1
-            addi(3, 0, 10),  # x3 = 10
+            addi(1, 0, 0),   # x1 = 0  = fib(0)
+            addi(2, 0, 1),   # x2 = 1  = fib(1)
+            addi(3, 0, 9),   # x3 = 9  (9 iters: fib(1)→fib(10))
             # loop (pc=0x0C):
-            add(4, 1, 2),    # x4 = x1+x2
+            add(4, 1, 2),    # x4 = x1 + x2
             addi(1, 2, 0),   # x1 = x2
             addi(2, 4, 0),   # x2 = x4
             addi(3, 3, -1),  # x3--
-            bne(3, 0, -16),  # back to loop
+            bne(3, 0, -16),  # if x3 != 0, loop back  (BNE not BEQ!)
             nop(),
         ]
         m = run(prog)

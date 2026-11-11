@@ -33,16 +33,28 @@ jobs:
 
       - name: Compile ALU standalone testbench
         run: |
-          mkdir -p sim/waveforms
+          mkdir -p sim/waveforms sim/logs
           iverilog -g2012 -o sim/alu_tb_out rtl/alu.v verif/tb_alu_standalone.v
           echo "✅ ALU testbench compiled successfully"
 
       - name: Run ALU simulation
         run: |
-          cd sim && vvp alu_tb_out | tee ../sim/alu_results.log
-          grep -q "ALL ALU TESTS PASSED" ../sim/alu_results.log && \
+          vvp sim/alu_tb_out | tee sim/alu_results.log
+          grep -q "ALL ALU TESTS PASSED" sim/alu_results.log && \
             echo "✅ ALU tests PASSED" || \
             (echo "❌ ALU tests FAILED" && exit 1)
+
+      - name: Compile and run full pipeline testbench
+        run: |
+          iverilog -g2012 -o sim/tb_top_out \
+            rtl/alu.v rtl/reg_file.v rtl/if_stage.v rtl/id_stage.v \
+            rtl/ex_stage.v rtl/mem_stage.v rtl/wb_stage.v \
+            rtl/pipeline_regs.v rtl/hazard_unit.v rtl/branch_predictor.v \
+            rtl/top.v verif/tb_top.v
+          vvp sim/tb_top_out | tee sim/pipeline_results.log
+          grep -q "ALL TESTS PASSED" sim/pipeline_results.log && \
+            echo "✅ Full pipeline simulation PASSED" || \
+            (echo "❌ Pipeline simulation FAILED" && exit 1)
 
       - name: Upload ALU simulation log
         uses: actions/upload-artifact@v4
@@ -89,7 +101,7 @@ jobs:
               return ((off>>12)&1)<<31|((off>>5)&0x3F)<<25|rs2<<20|rs1<<15|1<<12|((off>>1)&0xF)<<8|((off>>11)&1)<<7|0x63
 
           program = [
-              addi(1,0,0), addi(2,0,1), addi(3,0,10),
+              addi(1,0,0), addi(2,0,1), addi(3,0,9),
               add(4,1,2), addi(1,2,0), addi(2,4,0), addi(3,3,-1),
               bne(3,0,-16),
               addi(0,0,0),

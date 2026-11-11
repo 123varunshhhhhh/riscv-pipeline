@@ -17,10 +17,11 @@ module if_stage (
     // Run from project root so the path resolves correctly:
     //   iverilog ... && vvp sim/tb_top_out
     reg [31:0] imem [0:255];
+    integer k;
     initial begin
+        for (k = 0; k < 256; k = k + 1)
+            imem[k] = 32'h00000013; // default NOP (ADDI x0, x0, 0)
         $readmemh("asm/program.hex", imem);
-        // Fill rest with NOPs (0x00000013) so pipeline never fetches garbage
-        // (Icarus leaves uninitialized entries as X; NOPs are safer)
     end
 
     assign pc_plus4 = pc + 32'd4;

@@ -4,6 +4,10 @@ Runs the golden Python model alongside the RTL and compares
 register state after every instruction. Reports any mismatch.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, ClockCycles
@@ -18,22 +22,26 @@ def sub(rd, rs1, rs2):  return 0x20 << 25 | rs2 << 20 | rs1 << 15 | 0 << 12 | rd
 def beq(rs1, rs2, off): 
     off &= 0x1FFF
     return ((off>>12)&1)<<31 | ((off>>5)&0x3F)<<25 | rs2<<20 | rs1<<15 | 0<<12 | ((off>>1)&0xF)<<8 | ((off>>11)&1)<<7 | 0x63
+def bne(rs1, rs2, off):
+    off &= 0x1FFF
+    return ((off>>12)&1)<<31 | ((off>>5)&0x3F)<<25 | rs2<<20 | rs1<<15 | 1<<12 | ((off>>1)&0xF)<<8 | ((off>>11)&1)<<7 | 0x63
 def nop(): return addi(0, 0, 0)
 
 # ----------------------------------------------------------------
-# Fibonacci program: computes fib(10) in x10
-# x1=0 (fib[n-2]), x2=1 (fib[n-1]), x3=counter, x4=temp
+# Fibonacci program: computes fib(10)=55 in x2
+# Start: x1=fib(0)=0, x2=fib(1)=1
+# 9 iterations yields: fib(2)=1, fib(3)=2, ..., fib(10)=55
 # ----------------------------------------------------------------
 FIB_PROGRAM = [
     addi(1,  0, 0),   # x1 = 0
     addi(2,  0, 1),   # x2 = 1
-    addi(3,  0, 10),  # x3 = 10 (loop counter)
+    addi(3,  0, 9),   # x3 = 9 (9 iterations gives fib(10))
     # loop:
     add(4,  1, 2),    # x4 = x1 + x2
-    add(1,  0, 2),    # x1 = x2
-    add(2,  0, 4),    # x2 = x4
+    addi(1, 2, 0),    # x1 = x2
+    addi(2, 4, 0),    # x2 = x4
     addi(3, 3, -1),   # x3 -= 1
-    beq(3,  0, -16),  # if x3 == 0, done (exit); else loop back
+    bne(3,  0, -16),  # loop if x3 != 0 (BNE!)
     nop(),
 ]
 

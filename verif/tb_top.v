@@ -27,7 +27,7 @@ module tb_top;
     // Waveform dump
     // ----------------------------------------------------------------
     initial begin
-        $dumpfile("sim/waveforms/tb_top.vcd");
+        $dumpfile("tb_top.vcd");
         $dumpvars(0, tb_top);
     end
 
