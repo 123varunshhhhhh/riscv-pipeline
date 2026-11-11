@@ -1,0 +1,28 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Simulation outputs
+*.vcd
+*.lxt
+*.fst
+sim/waveforms/*.vcd
+results.xml
+
+# Compiled objects
+*.o
+*.elf
+*.hex
+sim/*_tb_out
+
+# cocotb simulation artifacts
+sim_build/
+*.log
+
+# GTKWave save files (optional — remove if you want to keep them)
+*.gtkw
+
+# OS
+.DS_Store
+Thumbs.db
+

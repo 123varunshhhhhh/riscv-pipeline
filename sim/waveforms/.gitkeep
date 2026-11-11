@@ -1,0 +1,3 @@
+# Placeholder — waveform files (.vcd) are gitignored and generated locally
+# Run `make test_alu` and then `make wave_alu` to generate and view waveforms
+

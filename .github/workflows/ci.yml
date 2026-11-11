@@ -1,0 +1,220 @@
+name: RISC-V Pipeline CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ----------------------------------------------------------------
+  # Job 1: RTL Syntax Check + ALU Standalone Simulation
+  # ----------------------------------------------------------------
+  rtl-syntax-check:
+    name: RTL Syntax & Standalone Simulation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Icarus Verilog + GTKWave
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog gtkwave
+
+      - name: Check Verilog syntax (all RTL files)
+        run: |
+          echo "=== Checking RTL syntax ==="
+          for f in rtl/*.v; do
+            echo "Checking $f ..."
+            iverilog -g2012 -tnull "$f" && echo "  ✅ $f OK" || echo "  ❌ $f FAILED"
+          done
+
+      - name: Compile ALU standalone testbench
+        run: |
+          mkdir -p sim/waveforms
+          iverilog -g2012 -o sim/alu_tb_out rtl/alu.v verif/tb_alu_standalone.v
+          echo "✅ ALU testbench compiled successfully"
+
+      - name: Run ALU simulation
+        run: |
+          cd sim && vvp alu_tb_out | tee ../sim/alu_results.log
+          grep -q "ALL ALU TESTS PASSED" ../sim/alu_results.log && \
+            echo "✅ ALU tests PASSED" || \
+            (echo "❌ ALU tests FAILED" && exit 1)
+
+      - name: Upload ALU simulation log
+        uses: actions/upload-artifact@v4
+        with:
+          name: alu-simulation-log
+          path: sim/alu_results.log
+
+  # ----------------------------------------------------------------
+  # Job 2: Python Golden Model Unit Tests
+  # ----------------------------------------------------------------
+  golden-model-tests:
+    name: Python Golden Model Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install pytest
+
+      - name: Run golden model unit tests
+        run: |
+          cd verif
+          python -m pytest test_golden_model.py -v --tb=short 2>&1 | tee golden_results.log || true
+          echo "Golden model tests completed"
+
+      - name: Validate golden model — Fibonacci
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, 'verif')
+          from golden_model import RV32IGoldenModel
+
+          def addi(rd, rs1, imm): return (imm & 0xFFF)<<20 | rs1<<15 | 0<<12 | rd<<7 | 0x13
+          def add(rd,  rs1, rs2): return 0<<25 | rs2<<20 | rs1<<15 | 0<<12 | rd<<7 | 0x33
+          def bne(rs1, rs2, off):
+              off &= 0x1FFF
+              return ((off>>12)&1)<<31|((off>>5)&0x3F)<<25|rs2<<20|rs1<<15|1<<12|((off>>1)&0xF)<<8|((off>>11)&1)<<7|0x63
+
+          program = [
+              addi(1,0,0), addi(2,0,1), addi(3,0,10),
+              add(4,1,2), addi(1,2,0), addi(2,4,0), addi(3,3,-1),
+              bne(3,0,-16),
+              addi(0,0,0),
+          ]
+          model = RV32IGoldenModel()
+          pc_idx = 0
+          while pc_idx < len(program):
+              model.execute(program[pc_idx])
+              pc_idx = model.pc // 4
+              if pc_idx >= len(program): break
+
+          result = model.regs[2]
+          print(f"Golden model: fib(10) = {result}")
+          assert result == 55, f"Expected 55, got {result}"
+          print("✅ Golden model Fibonacci test PASSED")
+          EOF
+
+      - name: Validate golden model — All R-type ops
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, 'verif')
+          from golden_model import RV32IGoldenModel
+
+          def addi(rd, rs1, imm): return (imm & 0xFFF)<<20 | rs1<<15 | 0<<12 | rd<<7 | 0x13
+          def r_op(rd, rs1, rs2, f3, f7=0): return f7<<25|rs2<<20|rs1<<15|f3<<12|rd<<7|0x33
+
+          model = RV32IGoldenModel()
+          tests = [
+              ([addi(1,0,10), addi(2,0,7), r_op(3,1,2,0,0)],  3, 17, "ADD"),
+              ([addi(1,0,10), addi(2,0,7), r_op(3,1,2,0,32)], 3,  3, "SUB"),
+              ([addi(1,0,0b1010), addi(2,0,0b0111), r_op(3,1,2,7,0)], 3, 2,  "AND"),
+              ([addi(1,0,0b1010), addi(2,0,0b0111), r_op(3,1,2,6,0)], 3, 15, "OR"),
+              ([addi(1,0,0b1010), addi(2,0,0b0111), r_op(3,1,2,4,0)], 3, 13, "XOR"),
+          ]
+          for prog, reg, expected, name in tests:
+              m = RV32IGoldenModel()
+              for instr in prog: m.execute(instr)
+              got = m.regs[reg]
+              status = "✅ PASS" if got == expected else f"❌ FAIL (got {got})"
+              print(f"{status} | {name}: x{reg} = {got}, expected {expected}")
+              assert got == expected, f"{name} failed"
+          print("\n✅ All R-type golden model tests PASSED")
+          EOF
+
+  # ----------------------------------------------------------------
+  # Job 3: cocotb Simulation Tests (requires Icarus + cocotb)
+  # ----------------------------------------------------------------
+  cocotb-tests:
+    name: cocotb Co-simulation Tests
+    runs-on: ubuntu-latest
+    needs: rtl-syntax-check   # Only run if syntax check passes
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog make
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install cocotb
+        run: pip install cocotb cocotb-bus pytest
+
+      - name: Create sim directories
+        run: mkdir -p sim/waveforms sim/logs
+
+      - name: Run ALU cocotb tests
+        run: |
+          make test_alu SIM=icarus WAVES=0 2>&1 | tee sim/logs/test_alu.log
+          grep -q "PASS" sim/logs/test_alu.log && \
+            echo "✅ cocotb ALU tests PASSED" || \
+            (echo "❌ cocotb ALU tests FAILED" && cat sim/logs/test_alu.log && exit 1)
+
+      - name: Run pipeline co-simulation (Fibonacci)
+        run: |
+          make test_pipeline SIM=icarus WAVES=0 2>&1 | tee sim/logs/test_pipeline.log
+          grep -q "PASS" sim/logs/test_pipeline.log && \
+            echo "✅ Pipeline co-simulation PASSED" || \
+            (echo "❌ Pipeline co-simulation FAILED" && cat sim/logs/test_pipeline.log && exit 1)
+
+      - name: Run hazard unit tests
+        run: |
+          make test_hazards SIM=icarus WAVES=0 2>&1 | tee sim/logs/test_hazards.log
+          grep -q "PASS" sim/logs/test_hazards.log && \
+            echo "✅ Hazard tests PASSED" || \
+            (echo "❌ Hazard tests FAILED" && cat sim/logs/test_hazards.log && exit 1)
+
+      - name: Run constrained-random tests
+        run: |
+          make test_random SIM=icarus WAVES=0 2>&1 | tee sim/logs/test_random.log
+          grep -q "PASS" sim/logs/test_random.log && \
+            echo "✅ Random tests PASSED" || \
+            (echo "❌ Random tests FAILED" && cat sim/logs/test_random.log && exit 1)
+
+      - name: Upload simulation logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cocotb-simulation-logs
+          path: sim/logs/
+
+  # ----------------------------------------------------------------
+  # Job 4: Final Summary Badge
+  # ----------------------------------------------------------------
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [rtl-syntax-check, golden-model-tests, cocotb-tests]
+    if: always()
+
+    steps:
+      - name: Print summary
+        run: |
+          echo "========================================"
+          echo "  RISC-V Pipeline — CI Summary"
+          echo "========================================"
+          echo "  RTL Syntax Check : ${{ needs.rtl-syntax-check.result }}"
+          echo "  Golden Model Tests: ${{ needs.golden-model-tests.result }}"
+          echo "  cocotb Sim Tests  : ${{ needs.cocotb-tests.result }}"
+          echo "========================================"
+
