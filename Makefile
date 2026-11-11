@@ -32,43 +32,51 @@ RTL_SRCS = rtl/alu.v \
 test_alu: TOPLEVEL = alu
 test_alu: MODULE   = verif.test_alu
 test_alu: rtl/alu.v
+	rm -rf sim_build/alu
 	$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(SIM) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		VERILOG_SOURCES="rtl/alu.v" \
 		TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) \
+		SIM_BUILD=sim_build/alu \
 		WAVES=$(WAVES)
 
 # ---- cocotb pipeline test --------------------------------------
 test_pipeline: TOPLEVEL = top
 test_pipeline: MODULE   = verif.test_pipeline
 test_pipeline: $(RTL_SRCS)
-	mkdir -p sim_build/asm && cp -r asm/* sim_build/asm/ 2>/dev/null || true
+	rm -rf sim_build/pipeline
+	mkdir -p sim_build/pipeline/asm && cp -r asm/* sim_build/pipeline/asm/ 2>/dev/null || true
 	$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(SIM) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		VERILOG_SOURCES="$(RTL_SRCS)" \
 		TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) \
+		SIM_BUILD=sim_build/pipeline \
 		WAVES=$(WAVES)
 
 # ---- cocotb hazard test ----------------------------------------
 test_hazards: TOPLEVEL = top
 test_hazards: MODULE   = verif.test_hazards
 test_hazards: $(RTL_SRCS)
-	mkdir -p sim_build/asm && cp -r asm/* sim_build/asm/ 2>/dev/null || true
+	rm -rf sim_build/hazards
+	mkdir -p sim_build/hazards/asm && cp -r asm/* sim_build/hazards/asm/ 2>/dev/null || true
 	$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(SIM) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		VERILOG_SOURCES="$(RTL_SRCS)" \
 		TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) \
+		SIM_BUILD=sim_build/hazards \
 		WAVES=$(WAVES)
 
 # ---- cocotb random test ----------------------------------------
 test_random: TOPLEVEL = top
 test_random: MODULE   = verif.test_random
 test_random: $(RTL_SRCS)
-	mkdir -p sim_build/asm && cp -r asm/* sim_build/asm/ 2>/dev/null || true
+	rm -rf sim_build/random
+	mkdir -p sim_build/random/asm && cp -r asm/* sim_build/random/asm/ 2>/dev/null || true
 	$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
 		SIM=$(SIM) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		VERILOG_SOURCES="$(RTL_SRCS)" \
 		TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) \
+		SIM_BUILD=sim_build/random \
 		WAVES=$(WAVES)
 
 # ---- Icarus standalone ALU simulation --------------------------
