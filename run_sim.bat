@@ -1,11 +1,16 @@
 @echo off
 REM ============================================================
 REM run_sim.bat — Quick simulation launcher for Windows
-REM Double-click this file OR run from hardware_project\ folder
-REM
-REM Prerequisites (WSL2 / Git Bash / MSYS2):
-REM   iverilog, vvp installed and on PATH
+REM Automatically detects standard Icarus Verilog install path
 REM ============================================================
+
+REM Check if iverilog is in PATH; if not, check default install locations
+where iverilog >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    if exist "C:\iverilog\bin" set "PATH=%PATH%;C:\iverilog\bin;C:\iverilog\gtkwave\bin"
+    if exist "C:\Program Files\iverilog\bin" set "PATH=%PATH%;C:\Program Files\iverilog\bin"
+    if exist "%LOCALAPPDATA%\Programs\iverilog\bin" set "PATH=%PATH%;%LOCALAPPDATA%\Programs\iverilog\bin"
+)
 
 echo.
 echo ==========================================
