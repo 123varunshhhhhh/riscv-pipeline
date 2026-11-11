@@ -13,6 +13,8 @@ results.xml
 *.o
 *.elf
 *.hex
+!asm/*.hex
+!program.hex
 sim/*_tb_out
 
 # cocotb simulation artifacts

@@ -101,14 +101,30 @@ make test_all
 
 ### View Waveforms
 ```bash
-make wave_alu
-# GTKWave opens — load signals from the Signal panel
+# Open pipeline waveform in GTKWave
+gtkwave tb_top.vcd
+
+# Or open ALU test waveform
+gtkwave alu.vcd
 ```
+
+![Hardware Pipeline Waveform](docs/waveform.jpg)
+*Figure: GTKWave logic analyzer trace showing clock cycles, PC increments, active forwarding signals (`fwd_a`, `fwd_b`), and instruction execution across pipeline stages during the Fibonacci benchmark.*
 
 ---
 
-## Verification Results
+## Verification & Benchmark Results
 
+### Architectural Performance Metrics
+| Benchmark Suite | Instructions | Cycles | Measured CPI | Branch Predictor Accuracy |
+|:---|:---:|:---:|:---:|:---:|
+| `fibonacci(10)` | 50 | 58 | **1.160** | 77.8% |
+| `sum_1_to_100` | 302 | 310 | **1.026** | **98.0%** |
+| `bubble_sort_8` | 49 | 60 | **1.224** | N/A |
+| `arith_no_branch` | 16 | 20 | **1.250** | N/A |
+| **Overall Average** | — | — | **1.165** | **87.9%** |
+
+### Test Suite Results
 | Test Suite | Instructions Tested | Result |
 |------------|-------------------|--------|
 | ALU random (1000 × 7 ops) | 7,000 | ✅ PASS |
@@ -119,8 +135,6 @@ make wave_alu
 | Branch flush | 4 branch types | ✅ PASS |
 | Fibonacci co-sim | 50 instructions | ✅ PASS (x2=55) |
 | Random stress (5×100) | 500 | ✅ PASS |
-
-**Branch Predictor Accuracy:** ~87% on loop-heavy workloads (fibonacci)
 
 ---
 
