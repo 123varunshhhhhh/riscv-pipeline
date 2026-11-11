@@ -94,8 +94,20 @@ sim_pipeline: $(RTL_SRCS)
 	@echo "Waveform: tb_top.vcd — open with: gtkwave tb_top.vcd"
 	@echo "Waveform: sim/waveforms/alu.vcd — open with: gtkwave sim/waveforms/alu.vcd"
 
+# ---- cocotb branch predictor test ------------------------------
+test_branch_predictor: TOPLEVEL = branch_predictor
+test_branch_predictor: MODULE   = verif.test_branch_predictor
+test_branch_predictor: rtl/branch_predictor.v
+	rm -rf sim_build/branch_predictor
+	$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
+		SIM=$(SIM) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
+		VERILOG_SOURCES="rtl/branch_predictor.v" \
+		TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) \
+		SIM_BUILD=sim_build/branch_predictor \
+		WAVES=$(WAVES)
+
 # ---- All tests -------------------------------------------------
-test_all: test_alu test_pipeline test_hazards test_random
+test_all: test_alu test_pipeline test_hazards test_random test_branch_predictor
 	@echo "============================================"
 	@echo "✅ All test suites completed"
 	@echo "============================================"
@@ -113,10 +125,10 @@ wave_alu:
 
 # ---- Clean -----------------------------------------------------
 clean:
-	rm -rf sim/__pycache__ __pycache__ results.xml
+	rm -rf sim/__pycache__ __pycache__ results.xml sim_build
 	rm -rf sim/waveforms/*.vcd *.vcd *.o *.elf
-	rm -rf sim/alu_tb_out
+	rm -rf sim/alu_tb_out sim/tb_top_out
 	find . -name "*.pyc" -delete
 
-.PHONY: test_alu test_pipeline test_hazards test_random test_all sim_alu wave_alu clean
+.PHONY: test_alu test_pipeline test_hazards test_random test_branch_predictor test_all sim_alu sim_pipeline wave_alu clean
 

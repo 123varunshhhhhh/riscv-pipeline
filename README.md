@@ -151,21 +151,6 @@ Rather than writing another Verilog testbench (which could have its own bugs), t
 
 ---
 
-## Resume Entry
-
-```
-5-Stage Pipelined RISC-V (RV32I) Processor with Python Verification Suite
-• Designed a 32-bit 5-stage pipelined processor in Verilog implementing the full
-  RV32I ISA with data forwarding, hazard detection, and 2-bit branch prediction.
-• Built a Python co-simulation framework (cocotb) with a software golden reference
-  model; verified 500+ instruction sequences with 0 architectural mismatches.
-• Measured 87% branch prediction accuracy on loop-heavy workloads; pipeline achieved
-  CPI of ~1.1 on integer benchmarks vs. theoretical 1.0 ideal.
-Tools: Verilog · Icarus Verilog · cocotb · GTKWave · Python · Git
-```
-
----
-
 ## References
 
 - [The RISC-V Instruction Set Manual, Vol. I: Unprivileged ISA](https://riscv.org/technical/specifications/)

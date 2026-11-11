@@ -53,6 +53,13 @@ async def test_cosimulation_fibonacci(dut):
     """
     cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
     dut.rst.value = 1
+
+    # Load Fibonacci program into instruction memory
+    for i, instr in enumerate(FIB_PROGRAM):
+        dut.u_if.imem[i].value = instr
+    for i in range(len(FIB_PROGRAM), 256):
+        dut.u_if.imem[i].value = 0x00000013
+
     await ClockCycles(dut.clk, 5)
     dut.rst.value = 0
 
