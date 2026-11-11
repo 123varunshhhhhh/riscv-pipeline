@@ -5,8 +5,6 @@
 ![Verification](https://img.shields.io/badge/Verification-cocotb%20%2B%20Python-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-> **NIT Patna | CSE Final Year Project | IBM ISDL Resume Project**
-
 A complete 32-bit 5-stage pipelined processor implementing the **RISC-V RV32I** base integer ISA, designed in SystemVerilog and verified with an automated Python co-simulation framework using **cocotb**.
 
 ---

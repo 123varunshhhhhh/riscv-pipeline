@@ -20,9 +20,11 @@ module reg_file (
     reg [31:0] regs [31:0];
     integer i;
 
-    // x0 is always 0
-    assign rd1 = (rs1 != 5'b0) ? regs[rs1] : 32'b0;
-    assign rd2 = (rs2 != 5'b0) ? regs[rs2] : 32'b0;
+    // x0 is always 0; internal forwarding ensures write-before-read in same cycle
+    assign rd1 = (rs1 == 5'b0) ? 32'b0 :
+                 (reg_write && rd == rs1) ? wr_data : regs[rs1];
+    assign rd2 = (rs2 == 5'b0) ? 32'b0 :
+                 (reg_write && rd == rs2) ? wr_data : regs[rs2];
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
